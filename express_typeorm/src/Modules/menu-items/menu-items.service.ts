@@ -1,13 +1,16 @@
 import { MenuItem } from './entities/menu-item.entity';
+import { ChildMenuItem } from './entities/child-item-entity';
 import { Repository } from "typeorm";
 import App from "../../app";
 
 export class MenuItemsService {
 
   private menuItemRepository: Repository<MenuItem>;
+  private childItemRepository: Repository<ChildMenuItem>;
 
   constructor(app: App) {
     this.menuItemRepository = app.getDataSource().getRepository(MenuItem);
+    this.childItemRepository = app.getDataSource().getRepository(ChildMenuItem);
   }
 
   /* TODO: complete getMenuItems so that it returns a nested menu structure
@@ -86,6 +89,27 @@ export class MenuItemsService {
   */
 
   async getMenuItems() {
-    throw new Error('TODO in task 3');
+    const menuItems = await this.menuItemRepository.find({ relations: ['children'] });
+    return menuItems.map(async menuItem => {
+      if (menuItem.children.length) {
+        menuItem.children = await Promise.all(
+          menuItem.children.map(async child => {
+            child.children = await this.getChildren(child);
+            return child;
+          }),
+        );
+      }
+      return menuItem;
+    });
+  }
+  private async getChildren(menuItem: MenuItem): Promise<any> {
+    const children = await this.menuItemRepository.find({
+      where: { parentId: menuItem.id },
+      relations: ['children'],
+    });
+    return children.map(async child => {
+      child.children = await this.getChildren(child);
+      return child;
+    });
   }
 }

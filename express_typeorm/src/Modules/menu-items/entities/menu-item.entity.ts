@@ -1,19 +1,24 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+
+import { ChildMenuItem } from './child-item-entity';
 
 @Entity()
 export class MenuItem {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column()
-    name: string;
+  @Column()
+  name: string;
 
-    @Column()
-    url: string;
+  @Column()
+  url: string;
 
-    @Column({ type: 'integer', default: null })
-    parentId: number;
+  @Column({ nullable: true })
+  parentId: number;
 
-    @Column({ type: 'datetime' })
-    createdAt: string;
+  @Column()
+  createdAt: Date;
+
+  @OneToMany(type => MenuItem, (childMenuItem: { parent: any; }) => childMenuItem.parent)
+  children: MenuItem[];
 }

@@ -1,13 +1,16 @@
-import { Repository } from 'typeorm';
+import { LessThanOrEqual, MoreThan, Repository } from 'typeorm';
 import { Event } from './entities/event.entity';
+import { Workshop } from './entities/workshop.entity';
 import App from "../../app";
 
 
 export class EventsService {
   private eventRepository: Repository<Event>;
+  private workshopRepository: Repository<Workshop>;
 
   constructor(app: App) {
     this.eventRepository = app.getDataSource().getRepository(Event);
+    this.workshopRepository = app.getDataSource().getRepository(Workshop);
   }
 
   async getWarmupEvents() {
@@ -92,7 +95,17 @@ export class EventsService {
      */
 
   async getEventsWithWorkshops() {
-    throw new Error('TODO task 1');
+    const events = await this.eventRepository.find();
+  const workshops = await this.workshopRepository.find();
+
+  const eventsWithWorkshops = events.map(event => {
+    return {
+      ...event,
+      workshops: workshops.filter(workshop => workshop.eventId == event.id),
+    };
+  });
+
+  return eventsWithWorkshops;
   }
 
   /* TODO: complete getFutureEventWithWorkshops so that it returns events with workshops, that have not yet started
@@ -162,6 +175,24 @@ export class EventsService {
     ```
      */
   async getFutureEventWithWorkshops() {
-    throw new Error('TODO task 2');
+    const events = await this.eventRepository.find({});
+     
+    const evts = events.filter(event => {
+      const eventStart = new Date(event.createdAt);
+      return eventStart <= new Date();
+    });
+  
+    const workshops = await this.workshopRepository.find({});
+
+    const futureWorkshops = workshops.filter(workshop => {
+      const workshopStart = new Date(workshop.start);
+      return workshopStart > new Date();
+    });
+  
+    const futureEvents = evts.filter(event => {
+      return futureWorkshops.some(workshop => workshop.eventId === event.id);
+    });
+  
+    return futureEvents;
   }
 }
